@@ -1,0 +1,193 @@
+---
+title: "Introduction"
+author: "Kenji Sato"
+date: 'Day 01'
+output:
+  xaringan::moon_reader:
+    mathjax: "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    css: 
+      - "../asset/remark-css/style.css"
+    lib_dir: libs
+    nature:
+      countIncrementalSlides: no
+      highlightLines: yes
+      highlightStyle: github
+subtitle: Macroeconomics
+header-includes: <script src="https://use.fontawesome.com/b5f301ecca.js"></script>
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center')
+source("../R/utils.R")
+```
+
+`r section("Mechanics")`
+
+---
+
+## Kenji Sato
+
+- Fields of Interest: 
+   - Macroeconomic Dynamics
+   - Economics of Innovation
+   - Comparative Statics/Dynamics
+- Email: mail@kenjisato.jp / sato@eco.osakafu-u.ac.jp
+- Office Hours: Lunch time on Wednesdays and Thursdays
+    - Except for private ones, ask questions in class or on Slack chatroom.
+
+
+---
+
+## Assessment
+
+| Item                          | Weight    | Note                         |
+|:------------------------------|:----------|:-----------------------------|
+| Midterm exam                  | 30%       | Closed-book, Slow, MRW       |
+| Final exam                    | 70%       | Closed-book, everything else |
+
+
+---
+
+## Textbooks
+
+We will study fundamental models of economic growth, using
+
+- David Romer, _Advanced Macroeconomics_, 4th edition. McGraw-Hill. 2012. 
+
+As a companion I'd recommend
+
+- Charles Jones and Dietrich Vollrath, _Introduction to Economic Growth_, 3rd edition (2013, Norton) 
+- Daron Acemoglu, _Introduction to Modern Economic Growth_ (2009, Princeton University Press)
+
+Other related materials will be announced in class. 
+
+---
+
+`r section("Growth model")`
+
+---
+
+## Growth models as a basis for many macro models
+
+Macroeconomics has a range of subfields such as
+
+growth theory, monetary economics, public finance, labor economics, international finance, etc. ...
+
+In this course we study basics of the growth theory. 
+
+---
+
+## Why growth theory
+
+Acemoglu (2009) _Introduction to modern economic growth_, p. xv:
+
+.small[
+
+> While there is disagreement among macroeconomists about how to approach short-run macroeconomic phenomena and what the boundaries of macroeconomics should be, **there is broad agreement about the workhorse models of dynamic macroeconomic analysis. These include the Solow growth model, the neoclassical growth model, the overlapping generations model, and models of technological change and technology adoption**. Since these are all models of economic growth, a thorough treatment of modem economic growth can also provide (and perhaps should provide) an introduction to this core material of modem macroeconomics. [emphasis added]
+
+]
+
+---
+
+## Models we study 
+
+We study the following three models
+
+- Solow growth model
+    - Almost everything is exogenous but very good at explaining long-run behavior
+- Neoclassical growth model
+    - Ramsey model
+    - Involves dynamic optimization
+- Overlapping generations model
+    - Suitable for addressing conflict of interest between generations
+
+---
+
+## R programming language
+
+I will show you almost all the code I use to draw graphs.  
+Do rerun the code yourself because you can learn how to code only by doing.
+
+To be able to run the below code successfully, you need to setup your R environment properly. Ask on Slack if you have any questions.
+
+
+```{r, message=FALSE}
+library(tidyverse)
+pwt90 <- haven::read_dta("~/Data/pwt90.dta")
+```
+
+---
+
+## Economic phenomena we study
+
+Here is the graph showing economic growth in the USA. 
+
+```{r, out.width=350}
+usa <- pwt90 %>% filter(country == "United States")
+ggplot(usa) + geom_line(aes(year, rgdpo))
+```
+
+---
+
+## Growth in per-capita Real GDP
+
+Per-person GDP might be more important.
+
+```{r, out.width=350}
+usa_per_capita <- usa %>% transmute(year, rgdp_pc = rgdpo / pop)
+(p <- ggplot(usa_per_capita) + geom_line(aes(year, rgdp_pc)))
+```
+
+---
+
+## On log scale
+
+Plot log(Per-person GDP) to see the trend.
+
+```{r, out.width=350}
+p + scale_y_log10()
+```
+
+
+---
+
+## Fit 
+
+$$\ln \text{GDP} = \text{const.} + g \times \text{Year}$$
+
+```{r}
+lm(log(rgdp_pc) ~ year, data = usa_per_capita)
+```
+
+This means that (approximately)
+$$g = 2.1 \%$$
+
+---
+
+## Constant trend in growth
+
+```{r, out.width=350}
+gdp0 <- usa_per_capita$rgdp_pc[1]
+p + geom_line(aes(x = year, gdp0 * exp(0.021 * (year - min(year)))))
+```
+
+
+---
+
+## Question
+
+There seems a constant trend in growth.
+  - In the US, the annual per-capita real GDP growth rate is 2.1% on average
+
+What is the engine of economic growth?
+
+---
+
+## Models we study
+
+- Solow model
+- Mankiw-Romer-Weil extension
+- Ramsey-Cass-Koopmans model
+- Diamond OLG model
+
