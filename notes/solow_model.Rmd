@@ -1,0 +1,154 @@
+---
+title: "Solow model"
+author: "Kenji Sato"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+
+微分方程式のシミュレーションの基本を習得できれば，ソローモデルの分析は簡単にできる。
+
+可視化のために **ggplot2** パッケージを使おう。インストールしていない場合は `install.packages("ggplot2")` を実行してインストールすること。
+
+```{r, warning=FALSE}
+library(ggplot2)
+```
+
+ソローモデルのパラメータは，
+
+* 貯蓄率 $s$
+* 資本減耗率 $\delta$
+* 技術成長率 $g$
+* 人口成長率 $n$ 
+* 生産関数 $f$ 
+
+であった。ここでは生産関数をコブ・ダグラス型 $f(k) = k^\alpha$ を仮定しよう。したがって，$f$ の代わりに
+
+* 資本分配率 $\alpha$
+
+を決めれば $f$ が定まる。次のようにパラメータを特定化しよう。
+
+```{r}
+alpha <- 0.3
+delta <- 0.05
+g <- 0.02
+n <- 0.01
+s <- 0.4
+```
+
+分析開始時点の効率労働あたりの資本（初期条件）`k0` を以下の通り決める。
+
+```{r}
+k0 <- 0.1
+```
+
+生産関数
+
+$$
+  f(k) = k^\alpha
+$$
+```{r}
+prod_func <- function(k)　k ^ alpha
+```
+
+生産関数のグラフは次のような形状をしている。
+
+```{r, fig.width=5, fig.asp=0.75, fig.align='center'}
+kgrid <- seq(from = 0, to = 1.0, length.out = 200)
+
+qplot(x = kgrid, y = prod_func(kgrid), geom = 'line') + 
+  labs(x = "Capital per effective labor", y = "Output per effective labor", 
+       title = "Cobb-Douglas Production Function")
+```
+
+
+
+
+
+微分方程式のシミュレーションに必要なパラメータ：
+
+```{r}
+dt <- 0.01   # controls precision of approximation
+t_max <- 100 # simulation for t_max years
+```
+
+ソローモデルの微分方程式
+
+$$
+\dot k(t) = sf(k(t)) - (\delta + g + n)k(t)
+$$
+... とその離散時間近似
+
+$$
+\frac{k(t+\Delta t) - k(t)}{\Delta t} = sf(k(t)) - (\delta + g + n) k(t)
+$$
+
+少し変形すると次の漸化式を得る。
+
+$$
+k(t+\Delta t) 
+  = k(t) + \Delta t \left[
+      sf(k(t)) - (\delta + g + n) k(t)
+    \right]
+$$
+
+それではコードを書いてみよう。次の関数は，$k(t)$ から $k(t+\Delta t)$ を計算するコードである。
+
+```{r}
+solow_update <- function(k){
+  k + dt * (s * prod_func(k) - (delta + g + n) * k)
+}
+```
+
+この関数を繰り返し適用すれば，ソローモデルのシミュレーションが実行できる。
+
+```{r, fig.width=5, fig.asp=0.75, fig.align='center'}
+t <- seq(from = 0, to = t_max, by = dt)   # 評価する時刻
+simulation <- as.data.frame(t)            # 結果を記録するデータフレーム
+simulation$k <- numeric(length(t))        # 資本ストック用のコラムを増やす
+
+simulation$k[1] <- k0
+for (i in 2:nrow(simulation)){
+  simulation$k[i] <- solow_update(simulation$k[i-1])
+}
+
+ggplot(simulation, aes(x = t, y = k)) + 
+  geom_line() + labs(x = "Time", y = "Capital per effective labor")
+```
+
+
+効率労働あたりの資本が収束していくことを確認できるだろう。この値は次の方程式をとけば解析的に計算できる。
+
+$$
+0 = s f(k) - (g + n + \delta) k
+$$
+
+解は次の式で与えられる。
+
+$$
+k^* = \left(\frac{s}{g + n + \delta}\right)^{\frac{1}{1 - \alpha}}
+$$
+
+
+実際にこの値に収束しているかを見ておこう。
+
+```{r, fig.width=5, fig.asp=0.75, fig.align='center'}
+kstar = (s / (g + n + delta))^(1 / (1 - alpha))
+
+ggplot(simulation, aes(x = t, y = k)) + 
+  geom_line() + labs(x = "Time", y = "Capital per effective labor") + 
+  geom_hline(yintercept = kstar, linetype = "dashed") + 
+  geom_text(x = 0, y = 0.95 * kstar, label = "k*")
+```
+
+
+
+## 練習問題
+
+1. $k(0) > k^*$ なる $k(0)$ を選んで同じシミュレーションを実行し，$k(t)$ が
+   $k^*$ に収束する様子を図示しなさい。
+2. $k(t)$ を計算できれば，$Y(t) = A(t)L(t)f(k(t))$, $C(t)/L(t) = (1-s)A(t)f(k(t))$
+   などの重要なマクロ変数のシミュレーションが実行できる。
+   $Y(t)$, $C(t)/L(t)$ の時間を通じた変化を計算し，図示しなさい。
+
